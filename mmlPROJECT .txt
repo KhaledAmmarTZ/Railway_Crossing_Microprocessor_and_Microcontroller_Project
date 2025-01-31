@@ -1,0 +1,449 @@
+# THIS PROJECT IS DEVELOPED BY KHALED AMMAR(1008) AND SHOWRUP DAS(1005).SPRING-2024,5TH SEMESTER,41TH BATCH,SECTION A. 
+# First create a database 
+
+	CREATE DATABASE IF NOT EXISTS train;
+
+	USE train;
+
+	CREATE TABLE IF NOT EXISTS train (
+    	trainnumber INT AUTO_INCREMENT PRIMARY KEY,
+    	trainarrival DATETIME(6) NOT NULL,
+    	traindeparture DATETIME(6) NOT NULL,
+    	time CHAR(10) NOT NULL
+	);
+
+# Then create connect.php
+
+<?php
+	$con=mysqli_connect("localhost","root","","train") or (myslq_error());
+	//if ($conn->connect_error) {
+    //die("Connection failed: " . $conn->connect_error);
+//}
+?>
+
+# Then create tran.php
+
+<?php
+session_start();
+include("connect.php"); // Include the database connection file
+
+// Fetch POST data
+$trainarrival = $_POST['trainarrival'] ?? null;
+$traindeparture = $_POST['traindeparture'] ?? null;
+
+// Calculate time difference
+function calculateTimeDifference($arrival, $departure) {
+    $arrivalTime = new DateTime($arrival);
+    $departureTime = new DateTime($departure);
+    $interval = $arrivalTime->diff($departureTime);
+    return $interval->format('%H:%I:%S'); // Format as hours:minutes:seconds
+}
+
+if ($trainarrival && $traindeparture) {
+    $timeDifference = calculateTimeDifference($trainarrival, $traindeparture);
+
+    // Insert the data into the database
+    $query = "INSERT INTO train (trainarrival, traindeparture, time) VALUES (?, ?, ?)";
+    $stmt = $con->prepare($query);
+    $stmt->bind_param("sss", $trainarrival, $traindeparture, $timeDifference);
+    $stmt->execute();
+    $stmt->close();
+}
+
+// Fetch train data from the database
+$query = "SELECT trainnumber, trainarrival, traindeparture, time FROM train";
+$result = mysqli_query($con, $query);
+
+// Count the total number of trains
+$totalTrainsQuery = "SELECT COUNT(*) AS totalTrains FROM train";
+$totalTrainsResult = mysqli_query($con, $totalTrainsQuery);
+$totalTrainsRow = mysqli_fetch_assoc($totalTrainsResult);
+$totalTrains = $totalTrainsRow['totalTrains'];
+
+// Sum the total time for all trains
+$totalTimeQuery = "SELECT time FROM train";
+$totalTimeResult = mysqli_query($con, $totalTimeQuery);
+
+$totalSeconds = 0;
+
+while ($row = mysqli_fetch_assoc($totalTimeResult)) {
+    $timeParts = explode(':', $row['time']);
+    $seconds = ($timeParts[0] * 3600) + ($timeParts[1] * 60) + $timeParts[2];
+    $totalSeconds += $seconds;
+}
+
+// Convert total seconds back to HH:MM:SS
+$hours = floor($totalSeconds / 3600);
+$minutes = floor(($totalSeconds % 3600) / 60);
+$seconds = $totalSeconds % 60;
+
+$totalTimeFormatted = sprintf('%02d:%02d:%02d', $hours, $minutes, $seconds);
+?>
+
+
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Train Arrival and Departure</title>
+	<meta http-equiv="refresh" content="3">
+    <style>
+        body {
+		background: linear-gradient(105deg, rgba(255,255,255,1) 0%, rgba(0,93,93,1) 100%);
+		margin: 0;
+		padding: 0;
+		font-family: Arial, sans-serif;
+		display: flex;
+		flex-direction: column;
+		min-height: 100vh;
+        }
+		header {
+			background-color: #cffdff; /* Set the header background to black */
+			color: white; /* Set the text color to white for contrast */
+			padding: 10px 20px;
+			text-align: center;
+			border-top-left-radius: 0;
+			border-top-right-radius: 0;
+			border-bottom-left-radius: 30px;
+			border-bottom-right-radius: 30px;
+		}
+		.container {
+            background-color: black;
+            padding: 1px;
+            border-radius: 20px;
+            box-shadow: 0 0 10px rgba(0, 0, 0, 0.1);	
+        }
+        h1 {
+            text-align: center;
+            color: #333;
+        }
+        table {
+            width: 80%;
+            margin: 20px auto;
+			padding: 40px;
+            border-radius: 20px;
+            box-shadow: 0 0 10px rgba(0, 0, 0, 0.1);
+            background-color: #fff;
+            box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+        }
+        th, td {
+            padding: 12px;
+            text-align: left;
+            border-bottom: 1px solid #ddd;
+        }
+        th {
+            background-color: #4CAF50;
+            color: white;
+        }
+        tr:hover {
+            background-color: #f1f1f1;
+        }
+		main {
+			flex: 1; /* This makes the main content area flexible, filling the space between header and footer */
+			padding: 20px;
+		}
+
+		footer {
+			background-color: #cffdff; /* Set the footer background to black */
+			color: white; /* Set the text color to white for contrast */
+			text-align: center;
+			border-top-left-radius: 30px;
+			border-top-right-radius: 30px;
+			bottom: 0;
+			width: 100%;
+		}
+    </style>
+</head>
+<body>
+	<header>
+        <h1>Railway Crossing system </h1>
+    </header>
+
+    <h1>Train Arrival and Departure Schedule</h1>
+    <table>
+        <thead>
+            <tr>
+                <th>Train Number</th>
+                <th>Arrival Time</th>
+                <th>Departure Time</th>
+                <th>Total Time</th>
+            </tr>
+        </thead>
+        <tbody>
+            <?php
+            // Check if the query returned any results
+            if (mysqli_num_rows($result) > 0) {
+                // Loop through each row of data and display it in the table
+                while($row = mysqli_fetch_assoc($result)) {
+                    echo "<tr>";
+                    echo "<td>" . htmlspecialchars($row['trainnumber']) . "</td>";
+                    echo "<td>" . (!empty($row['trainarrival']) ? date("Y-m-d h:i:s A", strtotime($row['trainarrival'])) : 'N/A') . "</td>";
+                    echo "<td>" . (!empty($row['traindeparture']) ? date("Y-m-d h:i:s A", strtotime($row['traindeparture'])) : 'N/A') . "</td>";
+                    echo "<td>" . htmlspecialchars($row['time']) . "</td>";
+                    echo "</tr>";
+                }
+            } else {
+                // If no data is returned, display a message
+                echo "<tr><td colspan='4'>No train data available.</td></tr>";
+            }
+            ?>
+        </tbody>
+    </table>
+	<h6 class="container"></h6>
+	<h1> Total Train Crossed and Combined Time </h1>
+	<table>
+        <thead>
+            <tr>
+                <th>Total Train</th>
+                <th>Total Time</th>
+            </tr>
+        </thead>
+        <tbody>
+            <td><?php echo $totalTrains; ?></td>
+            <td><?php echo $totalTimeFormatted; ?></td>
+        </tbody>
+    </table>
+	<h6 class="container"></h6>
+	<footer>
+        <h1>MML Project</h1>
+		<font size="2" color="black"> 
+			THIS PROJECT IS DEVELOPED BY KHALED AMMAR(1008) AND SHOWRUP DAS(1005).SPRING-2024,5TH SEMESTER,41TH BATCH,SECTION A.
+		</font>
+		Design:KHALED AMMAR(1008)
+    </footer>
+</body>
+</html>
+<?php
+// Close the database connection
+mysqli_close($con);
+?>
+
+
+# Then create a Phyton code named 'read_serial.py'
+
+import serial
+import requests
+from datetime import datetime
+
+# Set up the serial connection (adjust COM port and baud rate as needed)
+ser = serial.Serial('COM3', 9600)  # Replace COM3 with your actual port
+
+# URL of the PHP script
+server_url = "http://localhost/train/tran.php"
+
+def send_data_to_php(train_arrival_time, train_departure_time):
+    # Prepare the data to be sent to PHP
+    data = {
+        'trainnumber': 1,  # Update this with actual logic to increment train number
+        'trainarrival': train_arrival_time,
+        'traindeparture': train_departure_time,
+        'time': calculate_time_difference(train_arrival_time, train_departure_time)
+    }
+    # Send the data using POST request
+    try:
+        response = requests.post(server_url, data=data)
+        response.raise_for_status()  # Check for HTTP request errors
+        print("Data sent successfully")
+    except requests.exceptions.RequestException as e:
+        print(f"Error sending data: {e}")
+
+def calculate_time_difference(arrival_time, departure_time):
+    # Convert string to datetime
+    arrival = datetime.strptime(arrival_time, '%Y-%m-%d %H:%M:%S')
+    departure = datetime.strptime(departure_time, '%Y-%m-%d %H:%M:%S')
+    # Calculate difference
+    time_diff = departure - arrival
+    # Return the difference in minutes
+    return str(int(time_diff.total_seconds() // 60)) + " minutes"
+
+while True:
+    if ser.in_waiting > 0:
+        line = ser.readline().decode('utf-8').strip()
+        # Check for the specific command from Arduino
+        if line == "TRAIN_ARRIVED":
+            train_arrival_time = datetime.now().strftime('%Y-%m-%d %H:%M:%S')
+            print(f"Train arrived at: {train_arrival_time}")
+        elif line == "TRAIN_DEPARTED":
+            train_departure_time = datetime.now().strftime('%Y-%m-%d %H:%M:%S')
+            print(f"Train departed at: {train_departure_time}")
+            # Send the data to PHP
+            send_data_to_php(train_arrival_time, train_departure_time)
+	
+ OR
+
+import serial
+import requests
+from datetime import datetime
+
+ser = serial.Serial('COM3', 9600)  # Update 'COM3' with your Arduino port
+ser.timeout = 1
+
+server_url = 'http://192.168.1.191:8080/train/tran.php'
+
+def send_data_to_php(arrival_time=None, departure_time=None):
+    data = {
+        'trainnumber': 1,
+        'trainarrival': arrival_time if arrival_time else '',
+        'traindeparture': departure_time if departure_time else '',
+        'time': ''
+    }
+    if arrival_time and departure_time:
+        diff = (datetime.strptime(departure_time, '%Y-%m-%d %H:%M:%S') - datetime.strptime(arrival_time, '%Y-%m-%d %H:%M:%S')).total_seconds() / 60
+        data['time'] = f"{diff:.2f} minutes"
+    try:
+        response = requests.post(server_url, data=data)
+        print(f"Data sent to PHP: {response.status_code}, Response: {response.text}")
+    except requests.exceptions.RequestException as e:
+        print(f"Error sending data: {e}")
+
+train_arrival_time = None
+train_departure_time = None
+
+while True:
+    line = ser.readline().decode('utf-8').strip()
+    if line:
+        now = datetime.now().strftime('%Y-%m-%d %H:%M:%S')
+        if line == 'TRAIN_ARRIVED':
+            train_arrival_time = now
+            print(f"Train arrived at: {train_arrival_time}")
+        elif line == 'TRAIN_DEPARTED':
+            train_departure_time = now
+            print(f"Train departed at: {train_departure_time}")
+            if train_arrival_time:
+                send_data_to_php(train_arrival_time, train_departure_time)
+                train_arrival_time = None
+
+
+# REMEMBER TO PUT ALL FILE IN SAME DIRECTORY 
+# EXAMPLE C:\xampp\htdocs\train
+# AFTER OPEN COMMMAND PROMPT FOLLOW THE STEP
+	1)Navigate to the directory where your read_serial.py script is located
+		cd path\to\your\script
+	2)Install library
+		pip install pyserial requests
+	3)Run it 
+		python read_serial.py
+
+
+# HERE IS THE ARDUINO CODE
+
+#include <Servo.h>
+
+Servo servo1;
+Servo servo2;
+
+const int pirSensor1 = 2;
+const int pirSensor2 = 3;
+
+const int greenLED1 = 8;
+const int yellowLED1 = 9;
+const int redLED1 = 10;
+
+const int greenLED2 = 11;
+const int yellowLED2 = 12;      
+const int redLED2 = 13;
+
+bool trainPassing = false;
+bool sensor1Detected = false; // Indicates if sensor 1 has detected motion
+bool sensor2Detected = false; // Indicates if sensor 2 has detected motion
+
+unsigned long previousMillis = 0;
+const long interval = 3000; // 3 seconds
+
+void setup() {
+  pinMode(pirSensor1, INPUT);
+  pinMode(pirSensor2, INPUT);
+
+  pinMode(greenLED1, OUTPUT);
+  pinMode(yellowLED1, OUTPUT);
+  pinMode(redLED1, OUTPUT);
+
+  pinMode(greenLED2, OUTPUT);
+  pinMode(yellowLED2, OUTPUT);
+  pinMode(redLED2, OUTPUT);
+
+  servo1.attach(5);
+  servo2.attach(6);
+
+  digitalWrite(greenLED1, HIGH); // Initial state
+  digitalWrite(greenLED2, HIGH); // Initial state
+
+  servo1.write(0); // Initial position
+  servo2.write(0); // Initial position
+
+  Serial.begin(9600); // Initialize serial communication
+}
+
+void loop() {
+  unsigned long currentMillis = millis();
+
+  if (digitalRead(pirSensor1) == HIGH && !trainPassing && !sensor1Detected) {
+    sensor1Detected = true;
+    trainPassing = true;
+    digitalWrite(greenLED1, LOW);
+    digitalWrite(greenLED2, LOW);
+    digitalWrite(yellowLED1, HIGH);
+    digitalWrite(yellowLED2, HIGH);
+    servo1.write(90);
+    servo2.write(90);
+    Serial.println("TRAIN_ARRIVED"); // Send command to Node.js server
+    previousMillis = currentMillis;
+  }
+
+  if (trainPassing && sensor1Detected && !sensor2Detected && digitalRead(pirSensor2) == HIGH) {
+    sensor2Detected = true;
+    digitalWrite(redLED1, LOW);
+    digitalWrite(redLED2, LOW);
+    digitalWrite(yellowLED1, HIGH);
+    digitalWrite(yellowLED2, HIGH);
+    servo1.write(0);
+    servo2.write(0);
+    Serial.println("TRAIN_DEPARTED"); // Send command to Node.js server
+    previousMillis = currentMillis;
+  }
+
+  if (digitalRead(pirSensor2) == HIGH && !trainPassing && !sensor2Detected) {
+    sensor2Detected = true;
+    trainPassing = true;
+    digitalWrite(greenLED1, LOW);
+    digitalWrite(greenLED2, LOW);
+    digitalWrite(yellowLED1, HIGH);
+    digitalWrite(yellowLED2, HIGH);
+    servo1.write(90);
+    servo2.write(90);
+    Serial.println("TRAIN_ARRIVED"); // Send command to Node.js server
+    previousMillis = currentMillis;
+  }
+
+  if (trainPassing && sensor2Detected && !sensor1Detected && digitalRead(pirSensor1) == HIGH) {
+    sensor1Detected = true;
+    digitalWrite(redLED1, LOW);
+    digitalWrite(redLED2, LOW);
+    digitalWrite(yellowLED1, HIGH);
+    digitalWrite(yellowLED2, HIGH);
+    servo1.write(0);
+    servo2.write(0);
+    Serial.println("TRAIN_DEPARTED"); // Send command to Node.js server
+    previousMillis = currentMillis;
+  }
+
+  if (trainPassing && currentMillis - previousMillis >= interval) {
+    digitalWrite(yellowLED1, LOW);
+    digitalWrite(yellowLED2, LOW);
+    digitalWrite(redLED1, HIGH);
+    digitalWrite(redLED2, HIGH);
+    if (sensor1Detected && sensor2Detected) {
+      trainPassing = false;
+      sensor1Detected = false;
+      sensor2Detected = false;
+      digitalWrite(redLED1, LOW);
+      digitalWrite(redLED2, LOW);
+      digitalWrite(greenLED1, HIGH);
+      digitalWrite(greenLED2, HIGH);
+    }
+  }
+}
+
+# YOU NEED TO CHANGE THE COM3 IN ARDUINO IDE INTO COM1	
+# THIS PROJECT IS DEVELOPED BY KHALED AMMAR(1008) AND SHOWRUP DAS(1005).SPRING-2024,5TH SEMESTER,41TH BATCH,SECTION A.	
