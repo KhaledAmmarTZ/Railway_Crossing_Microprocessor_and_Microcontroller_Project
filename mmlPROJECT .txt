@@ -21,7 +21,7 @@
 //}
 ?>
 
-# Then create tran.php
+# Then create train.php
 
 <?php
 session_start();
