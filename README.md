@@ -74,22 +74,23 @@ USB (when connected to PC for serial communication)
 
 
 Installation Instructions
-Clone the Repository: Clone this repository to your local machine.
-Set Up the Database: Execute the SQL commands provided above to create the database and table.
-Configure PHP: Ensure your PHP environment is set up (e.g., XAMPP) and place the PHP files in the appropriate directory (e.g., C:\xampp\htdocs\train).
-Install Python Libraries: Navigate to the directory containing read_serial.py and run:
-bash
-Run
-Copy code
+
+1. Clone the Repository: Clone this repository to your local machine.
+2. Set Up the Database: Execute the SQL commands provided above to create the database and table.
+3. Configure PHP: Ensure your PHP environment is set up (e.g., XAMPP) and place the PHP files in the appropriate directory (e.g., C:\xampp\htdocs\train).
+4. Install Python Libraries: Navigate to the directory containing read_serial.py and run:
+
 pip install pyserial requests
+
 Run the Python Script: Execute the script using:
-bash
-Run
-Copy code
+
 python read_serial.py
-Upload Arduino Code: Upload the Arduino code to your Arduino board and ensure the correct COM port is set.
-Usage
-The system will detect train arrivals and departures using the sensors.
-Data will be sent to the PHP script, which will update the database and display the train schedule.
-Acknowledgments
-This project is developed by Khaled Ammar (1008) and Showrup Das (1005) for the Spring 2024 semester, 5th semester, 41st batch, Section A.
+
+5. Upload Arduino Code: Upload the Arduino code to your Arduino board and ensure the correct COM port is set.
+
+Usage:
+1. The system will detect train arrivals and departures using the sensors.
+2. Data will be sent to the PHP script, which will update the database and display the train schedule.
+
+Acknowledgments:
+This project is developed by Khaled Ammar (1008) and Showrup Das (1005) for the Spring 2024 semester, 5th semester, 41st batch, Section A, Premier University. 
